@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Happy Birthday Galaxy 🌌💖</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Three.js Library & OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- Confetti Canvas -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    /* Custom Styling for 3D Birthday Galaxy */
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #030008;
+      font-family: 'Outfit', sans-serif;
+      color: #ffffff;
+      user-select: none;
+    }
+
+    #galaxy-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    .font-dancing {
+      font-family: 'Dancing Script', cursive;
+    }
+
+    /* Glassmorphic UI Elements */
+    .glass-panel {
+      background: rgba(20, 5, 28, 0.65);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(244, 114, 182, 0.35);
+      box-shadow: 0 0 20px rgba(236, 72, 153, 0.25);
+    }
+
+    .glass-button {
+      background: rgba(236, 72, 153, 0.2);
+      border: 1px solid rgba(244, 114, 182, 0.5);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 0 12px rgba(236, 72, 153, 0.3);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass-button:hover {
+      background: rgba(236, 72, 153, 0.65);
+      box-shadow: 0 0 22px rgba(236, 72, 153, 0.8);
+      transform: translateY(-2px);
+    }
+
+    .glass-button:active {
+      transform: translateY(0);
+    }
+
+    /* Modal Animation */
+    @keyframes modalPop {
+      0% { transform: scale(0.85); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .animate-modal-pop {
+      animation: modalPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 2, 22, 0.8);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(244, 114, 182, 0.5);
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="relative w-full h-full">
+
+  <!-- WebGL Canvas for 3D Galaxy -->
+  <canvas id="galaxy-canvas"></canvas>
+
+  <!-- Top Controls & Music Panel -->
+  <div class="fixed top-4 right-4 z-20 flex flex-wrap gap-3 items-center">
+    <button id="music-btn" class="glass-button text-white px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-2 cursor-pointer">
+      <i class="fa-solid fa-music text-pink-400"></i>
+      <span id="music-text">Play Song</span>
+    </button>
+    
+    <button id="confetti-btn" class="glass-button text-white px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-2 cursor-pointer">
+      <i class="fa-solid fa-heart text-pink-400"></i>
+      <span>Confetti</span>
+    </button>
+    
+    <button id="info-btn" class="glass-button text-white w-10 h-10 rounded-full flex items-center justify-center text-sm cursor-pointer" title="About Galaxy">
+      <i class="fa-solid fa-circle-info text-pink-300"></i>
+    </button>
+  </div>
+
+  <!-- Bottom Interaction Hint -->
+  <div class="fixed bottom-5 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+    <div class="glass-panel text-pink-300 px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium tracking-wide flex items-center gap-2 shadow-lg text-center">
+      <i class="fa-solid fa-wand-magic-sparkles animate-pulse"></i>
+      <span>Drag to orbit • Scroll to zoom • Click any TV frame to view memory</span>
+    </div>
+  </div>
+
+  <!-- Audio Element for Background Music -->
+  <audio id="bg-music" loop preload="auto">
+    <source src="music.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- Interactive Video Popup Modal -->
+  <div id="modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/85 backdrop-blur-md p-4 sm:p-6">
+    <div class="glass-panel relative w-full max-w-xl rounded-2xl p-5 sm:p-7 text-center animate-modal-pop border border-pink-500/50 shadow-[0_0_50px_rgba(236,72,153,0.3)]">
+      
+      <!-- Close Button -->
+      <button id="close-btn" class="absolute top-3 right-4 text-pink-400 hover:text-white text-2xl transition-colors cursor-pointer w-8 h-8 flex items-center justify-center rounded-full hover:bg-pink-500/20">
+        &times;
+      </button>
+
+      <!-- Video Container -->
+      <div class="w-full max-h-[340px] bg-black/60 rounded-xl overflow-hidden mb-4 border border-pink-400/30 flex items-center justify-center shadow-inner relative">
+        <video id="modal-video" class="w-full h-full object-contain max-h-[340px]" controls playsinline preload="auto">
+          <source id="modal-video-src" src="" type="video/mp4">
+          Your browser does not support HTML5 video.
+        </video>
+        <!-- Fallback message if video fails to load locally -->
+        <div id="video-error" class="hidden absolute inset-0 flex-col items-center justify-center bg-slate-900/90 p-4 text-xs text-pink-200">
+          <i class="fa-solid fa-film text-3xl text-pink-400 mb-2"></i>
+          <p class="font-semibold text-sm">Playing Local Video Frame</p>
+          <p class="text-pink-300/80 mt-1">Make sure <code id="video-path-label" class="bg-black/50 px-2 py-0.5 rounded text-pink-400">videos/video1.mp4</code> is in your project folder.</p>
+        </div>
+      </div>
+
+      <!-- Title & Sweet Message -->
+      <h3 id="modal-title" class="font-dancing text-3xl sm:text-4xl text-pink-300 mb-2 drop-shadow-[0_0_10px_rgba(244,114,182,0.6)]">
+        Memory Title
+      </h3>
+      
+      <div class="max-h-28 overflow-y-auto pr-1">
+        <p id="modal-message" class="text-sm sm:text-base text-pink-100/90 leading-relaxed font-light">
+          Sweet birthday note goes here...
+        </p>
+      </div>
+
+      <div class="mt-5 flex justify-center gap-3">
+        <button id="modal-close-action" class="glass-button text-xs sm:text-sm text-pink-200 px-6 py-2 rounded-full font-semibold">
+          Back to Galaxy
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info / Greeting Banner Modal -->
+  <div id="info-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+    <div class="glass-panel w-full max-w-md rounded-2xl p-6 text-center animate-modal-pop border border-pink-500/40">
+      <div class="w-12 h-12 bg-pink-500/20 rounded-full flex items-center justify-center mx-auto mb-3 text-pink-400 text-xl border border-pink-400/40">
+        <i class="fa-solid fa-heart"></i>
+      </div>
+      <h3 class="font-dancing text-3xl text-pink-300 mb-2">3D Birthday Cosmos</h3>
+      <p class="text-xs sm:text-sm text-pink-100/80 leading-relaxed mb-4">
+        Welcome to your personal universe of memories! Orbit through the 10 retro video screens placed around the pink galactic core. Click any frame to enlarge and play the video.
+      </p>
+      <button id="info-close-btn" class="glass-button text-xs text-white px-6 py-2 rounded-full font-semibold">
+        Explore Galaxy
+      </button>
+    </div>
+  </div>
+
+  <script>
+    /* =========================================================================
+       1. CONFIGURATION DATA (10 Retro TV Video Memory Objects)
+       ========================================================================= */
+    const recipientName = "Nana";
+
+    // Central greeting card message text
+    const centralScrollText = {
+      title: `To My Dearest ${recipientName},`,
+      subtitle: "Your smile is the center of my universe.",
+      body: "May your year ahead be as bright and endless as this galaxy.",
+      wish: "Happy Birthday! • With all my love."
+    };
+
+    // Array of 10 Orbiting TV Videos with dedicated paths, titles, & sweet birthday messages
+    const videoMemories = [
+      {
+        id: 1,
+        url: 'videos/video1.mp4',
+        title: 'The Core of Love ❤️',
+        message: 'You make everything in my life blossom with joy, warmth, and radiance.',
+        radius: 4.8,
+        angle: 0.0
+      },
+      {
+        id: 2,
+        url: 'videos/video2.mp4',
+        title: 'Eres Magia ✨',
+        message: 'Every precious second spent with you feels like stepping straight into a magical dream.',
+        radius: 6.2,
+        angle: 0.63
+      },
+      {
+        id: 3,
+        url: 'videos/video3.mp4',
+        title: 'My Amor Eterno 💖',
+        message: 'Your sweet laughter is my absolute favorite sound in this entire infinite universe.',
+        radius: 7.5,
+        angle: 1.26
+      },
+      {
+        id: 4,
+        url: 'videos/video4.mp4',
+        title: 'Cumple Feliz 🎂',
+        message: 'Here is to another gorgeous orbit around the sun together! Happy Birthday!',
+        radius: 8.8,
+        angle: 1.88
+      },
+      {
+        id: 5,
+        url: 'videos/video5.mp4',
+        title: 'Hoy Celebramos 🎉',
+        message: 'Celebrating the incredible, beautiful person you are today and for all eternity.',
+        radius: 10.1,
+        angle: 2.51
+      },
+      {
+        id: 6,
+        url: 'videos/video6.mp4',
+        title: 'Happy Birthday 🌟',
+        message: 'May all your wildest dreams and sweetest heart wishes come true this year.',
+        radius: 11.4,
+        angle: 3.14
+      },
+      {
+        id: 7,
+        url: 'videos/video7.mp4',
+        title: 'Al Refugio De Mi Vida 🌹',
+        message: 'In your eyes, I found my shelter, my peaceful home, and my endless happiness.',
+        radius: 12.7,
+        angle: 3.77
+      },
+      {
+        id: 8,
+        url: 'videos/video8.mp4',
+        title: 'Unending Joy 🌸',
+        message: 'Thank you for bringing bright light and pure warmth into every single day.',
+        radius: 14.0,
+        angle: 4.40
+      },
+      {
+        id: 9,
+        url: 'videos/video9.mp4',
+        title: 'Eternal Spark ✨',
+        message: 'Like a star that never stops shining, your beauty illuminates my whole world.',
+        radius: 15.3,
+        angle: 5.02
+      },
+      {
+        id: 10,
+        url: 'videos/video10.mp4',
+        title: 'Forever & Always 💕',
+        message: 'No matter where the galaxy turns, my heart will always belong right beside you.',
+        radius: 16.6,
+        angle: 5.65
+      }
+    ];
+
+    // Orbit ring curved text labels
+    const ringTexts = [
+      { text: "HAPPY BIRTHDAY 💕", radius: 5.4, angleOffset: 0.3 },
+      { text: "MY AMOR ETERNO", radius: 7.8, angleOffset: 1.5 },
+      { text: "HAPPY BIRTHDAY ✨", radius: 9.2, angleOffset: 2.8 },
+      { text: "CUMPLE FELIZ 🎂", radius: 10.8, angleOffset: 3.9 },
+      { text: "HAPPY BIRTHDAY", radius: 12.2, angleOffset: 4.8 },
+      { text: "HAPPY BIRTHDAY", radius: 14.5, angleOffset: 0.9 },
+      { text: "HAPPY BIRTHDAY", radius: 16.0, angleOffset: 2.3 }
+    ];
+
+    /* =========================================================================
+       2. THREE.JS SCENE, CAMERA & RENDERER SETUP
+       ========================================================================= */
+    const canvas = document.getElementById('galaxy-canvas');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x030008, 0.02);
+
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 11, 16);
+
+    const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxDistance = 40;
+    controls.minDistance = 5;
+    controls.maxPolarAngle = Math.PI / 2 - 0.02; // Prevent going underneath plane
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
+    scene.add(ambientLight);
+
+    const centerLight = new THREE.PointLight(0xff3399, 5, 30);
+    centerLight.position.set(0, 2, 0);
+    scene.add(centerLight);
+
+    const softBlueLight = new THREE.PointLight(0x8b5cf6, 3, 20);
+    softBlueLight.position.set(0, -2, 0);
+    scene.add(softBlueLight);
+
+    /* =========================================================================
+       3. SWIRLING PINK GALAXY & ORBIT RINGS
+       ========================================================================= */
+    function createSwirlingGalaxy() {
+      const particleCount = 35000;
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(particleCount * 3);
+      const colors = new Float32Array(particleCount * 3);
+
+      const colorInside = new THREE.Color('#ff00aa');
+      const colorMiddle = new THREE.Color('#f472b6');
+      const colorOutside = new THREE.Color('#7c3aed');
+
+      for (let i = 0; i < particleCount; i++) {
+        const r = Math.pow(Math.random(), 2.3) * 18;
+        const spinAngle = r * 3.2;
+        const branchAngle = ((i % 2) * Math.PI); // 2 main spiral arms
+
+        const randomX = (Math.random() - 0.5) * 0.35 * r;
+        const randomY = (Math.random() - 0.5) * 0.18 * (18 - r) * 0.1;
+        const randomZ = (Math.random() - 0.5) * 0.35 * r;
+
+        positions[i * 3] = Math.cos(branchAngle + spinAngle) * r + randomX;
+        positions[i * 3 + 1] = randomY;
+        positions[i * 3 + 2] = Math.sin(branchAngle + spinAngle) * r + randomZ;
+
+        let mixedColor = colorInside.clone();
+        if (r < 7) {
+          mixedColor.lerp(colorMiddle, r / 7);
+        } else {
+          mixedColor.lerp(colorOutside, (r - 7) / 11);
+        }
+
+        colors[i * 3] = mixedColor.r;
+        colors[i * 3 + 1] = mixedColor.g;
+        colors[i * 3 + 2] = mixedColor.b;
+      }
+
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      const material = new THREE.PointsMaterial({
+        size: 0.055,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.85,
+        blending: THREE.AdditiveBlending
+      });
+
+      const mesh = new THREE.Points(geometry, material);
+      scene.add(mesh);
+      return mesh;
+    }
+
+    const galaxyMesh = createSwirlingGalaxy();
+
+    // Concentric Orbit Rings
+    const ringRadii = [5.4, 7.8, 9.2, 10.8, 12.2, 14.5, 16.0];
+    ringRadii.forEach(r => {
+      const ringGeo = new THREE.RingGeometry(r - 0.03, r + 0.03, 96);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0xf472b6, side: THREE.DoubleSide, transparent: true, opacity: 0.4 });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI / 2;
+      scene.add(ring);
+    });
+
+    /* =========================================================================
+       4. VERTICAL PARTICLE HEART PILLAR & "THE CORE OF LOVE" TITLE
+       ========================================================================= */
+    function createCentralParticleHeart() {
+      const count = 1800;
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(count * 3);
+
+      for (let i = 0; i < count; i++) {
+        const t = Math.random() * Math.PI * 2;
+        // Heart parametric formula
+        let x = 16 * Math.pow(Math.sin(t), 3);
+        let y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+
+        const scale = 0.13;
+        x *= scale;
+        y *= scale;
+
+        const z = (Math.random() - 0.5) * 0.7;
+        const verticalPillarHeight = Math.random() * 4.5;
+
+        positions[i * 3] = x + (Math.random() - 0.5) * 0.18;
+        positions[i * 3 + 1] = y + verticalPillarHeight + 1.2;
+        positions[i * 3 + 2] = z + (Math.random() - 0.5) * 0.18;
+      }
+
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const material = new THREE.PointsMaterial({
+        color: 0xff40a0,
+        size: 0.08,
+        transparent: true,
+        opacity: 0.95,
+        blending: THREE.AdditiveBlending
+      });
+
+      const heartPoints = new THREE.Points(geometry, material);
+      scene.add(heartPoints);
+      return heartPoints;
+    }
+
+    const heartCore = createCentralParticleHeart();
+
+    // Floating Badge Title: "THE CORE OF LOVE"
+    function createHeartBadge() {
+      const canvasBadge = document.createElement('canvas');
+      canvasBadge.width = 512;
+      canvasBadge.height = 128;
+      const ctx = canvasBadge.getContext('2d');
+
+      // Glowing pill background
+      ctx.fillStyle = 'rgba(236, 72, 153, 0.25)';
+      ctx.strokeStyle = '#f472b6';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.roundRect(12, 12, 488, 104, 50);
+      ctx.fill();
+      ctx.stroke();
+
+      // Text label
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'Bold 32px "Outfit", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = '#ec4899';
+      ctx.shadowBlur = 12;
+      ctx.fillText('THE CORE OF LOVE', 256, 64);
+
+      const texture = new THREE.CanvasTexture(canvasBadge);
+      const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+      const sprite = new THREE.Sprite(spriteMat);
+      sprite.position.set(0, 5.8, 0);
+      sprite.scale.set(3.4, 0.85, 1);
+      scene.add(sprite);
+    }
+
+    createHeartBadge();
+
+    /* =========================================================================
+       5. CENTRAL GREETING SCROLL CARD
+       ========================================================================= */
+    function createScrollCard() {
+      const canvasCard = document.createElement('canvas');
+      canvasCard.width = 640;
+      canvasCard.height = 380;
+      const ctx = canvasCard.getContext('2d');
+
+      // Scroll Background
+      ctx.fillStyle = 'rgba(18, 4, 26, 0.92)';
+      ctx.strokeStyle = '#ff66cc';
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.roundRect(16, 16, 608, 348, 28);
+      ctx.fill();
+      ctx.stroke();
+
+      // Inner Border Glow
+      ctx.strokeStyle = 'rgba(244, 114, 182, 0.4)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(26, 26, 588, 328, 20);
+      ctx.stroke();
+
+      // Header Title
+      ctx.fillStyle = '#f472b6';
+      ctx.font = 'italic 34px "Dancing Script", cursive';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = '#ec4899';
+      ctx.shadowBlur = 8;
+      ctx.fillText(centralScrollText.title, 320, 75);
+
+      // Card Message Body
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '20px "Outfit", sans-serif';
+      ctx.shadowBlur = 0;
+      ctx.fillText(centralScrollText.subtitle, 320, 140);
+      ctx.fillText(centralScrollText.body, 320, 190);
+
+      // Wish Footer
+      ctx.fillStyle = '#fb7185';
+      ctx.font = 'bold 22px "Dancing Script", cursive';
+      ctx.fillText(centralScrollText.wish, 320, 265);
+
+      const texture = new THREE.CanvasTexture(canvasCard);
+      const mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide });
+      const geo = new THREE.PlaneGeometry(4.4, 2.6);
+      const mesh = new THREE.Mesh(geo, mat);
+
+      mesh.position.set(0, 0.9, 3.2);
+      scene.add(mesh);
+    }
+
+    createScrollCard();
+
+    /* =========================================================================
+       6. CURVED RING TEXT LABELS & 10 RETRO TV MONITOR VIDEO FRAMES
+       ========================================================================= */
+    
+    // Curved Orbit Ring Text Sprites
+    ringTexts.forEach((rt) => {
+      const canvasRt = document.createElement('canvas');
+      canvasRt.width = 512;
+      canvasRt.height = 96;
+      const ctx = canvasRt.getContext('2d');
+
+      ctx.fillStyle = '#f472b6';
+      ctx.font = 'Bold 32px "Outfit", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = '#ff00a0';
+      ctx.shadowBlur = 12;
+      ctx.fillText(rt.text, 256, 48);
+
+      const texture = new THREE.CanvasTexture(canvasRt);
+      const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: 0.95 });
+      const sprite = new THREE.Sprite(spriteMat);
+
+      sprite.userData = { radius: rt.radius, angle: rt.angleOffset };
+      sprite.position.set(Math.cos(rt.angleOffset) * rt.radius, 0.2, Math.sin(rt.angleOffset) * rt.radius);
+      sprite.scale.set(3.4, 0.75, 1);
+      scene.add(sprite);
+    });
+
+    // Create 10 Retro TV Monitor Objects with Video Textures
+    const memoryTVObjects = [];
+
+    videoMemories.forEach((mem) => {
+      // Create HTML5 Video Element for Texture
+      const videoEl = document.createElement('video');
+      videoEl.src = mem.url;
+      videoEl.crossOrigin = 'anonymous';
+      videoEl.muted = true;
+      videoEl.loop = true;
+      videoEl.playsInline = true;
+      videoEl.autoplay = true;
+
+      // Attempt muted autoplay for 3D textures
+      videoEl.play().catch(err => {
+        // Autoplay policy fallback
+      });
+
+      const videoTexture = new THREE.VideoTexture(videoEl);
+      videoTexture.minFilter = THREE.LinearFilter;
+      videoTexture.magFilter = THREE.LinearFilter;
+      videoTexture.format = THREE.RGBAFormat;
+
+      const tvGroup = new THREE.Group();
+
+      // Outer Retro TV Cabinet
+      const boxGeo = new THREE.BoxGeometry(1.6, 1.25, 0.3);
+      const boxMat = new THREE.MeshBasicMaterial({ color: 0x2d0b36 }); // Dark purple cabinet
+      const tvBody = new THREE.Mesh(boxGeo, boxMat);
+
+      // TV Bezel Frame Accent
+      const bezelGeo = new THREE.BoxGeometry(1.45, 1.12, 0.32);
+      const bezelMat = new THREE.MeshBasicMaterial({ color: 0xec4899 }); // Glowing pink accent frame
+      const tvBezel = new THREE.Mesh(bezelGeo, bezelMat);
+      tvBezel.position.z = 0.01;
+
+      // TV Screen (Video Display)
+      const screenGeo = new THREE.PlaneGeometry(1.32, 0.98);
+      const screenMat = new THREE.MeshBasicMaterial({ map: videoTexture, side: THREE.FrontSide });
+      const tvScreen = new THREE.Mesh(screenGeo, screenMat);
+      tvScreen.position.z = 0.17; // Sit on top of frame
+
+      // Little TV Antenna lines
+      const antennaGeo = new THREE.CylinderGeometry(0.01, 0.01, 0.5);
+      const antennaMat = new THREE.MeshBasicMaterial({ color: 0xf472b6 });
+      
+      const ant1 = new THREE.Mesh(antennaGeo, antennaMat);
+      ant1.position.set(-0.25, 0.8, -0.05);
+      ant1.rotation.z = 0.35;
+
+      const ant2 = new THREE.Mesh(antennaGeo, antennaMat);
+      ant2.position.set(0.25, 0.8, -0.05);
+      ant2.rotation.z = -0.35;
+
+      // Add all parts to Group
+      tvGroup.add(tvBody, tvBezel, tvScreen, ant1, ant2);
+
+      // Custom User Data
+      tvGroup.userData = {
+        ...mem,
+        videoElement: videoEl,
+        currentAngle: mem.angle
+      };
+
+      // Orbit positioning
+      tvGroup.position.x = Math.cos(mem.angle) * mem.radius;
+      tvGroup.position.z = Math.sin(mem.angle) * mem.radius;
+      tvGroup.position.y = 0.6;
+
+      scene.add(tvGroup);
+      memoryTVObjects.push(tvGroup);
+    });
+
+    /* =========================================================================
+       7. INTERACTIVE RAYCASTING & MODAL EVENTS
+       ========================================================================= */
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    // Elements for Video Modal
+    const modal = document.getElementById('modal');
+    const closeBtn = document.getElementById('close-btn');
+    const modalCloseAction = document.getElementById('modal-close-action');
+    const modalVideo = document.getElementById('modal-video');
+    const modalVideoSrc = document.getElementById('modal-video-src');
+    const modalTitle = document.getElementById('modal-title');
+    const modalMessage = document.getElementById('modal-message');
+    const videoError = document.getElementById('video-error');
+    const videoPathLabel = document.getElementById('video-path-label');
+
+    // Raycast click detection on TV frames
+    window.addEventListener('click', (event) => {
+      // Ignore click if clicking top/bottom UI elements
+      if (event.target.closest('#music-btn') || 
+          event.target.closest('#confetti-btn') || 
+          event.target.closest('#info-btn') ||
+          event.target.closest('#modal') ||
+          event.target.closest('#info-modal')) return;
+
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+
+      // Collect all child meshes from all 10 TV groups
+      let targetMeshes = [];
+      memoryTVObjects.forEach(group => {
+        group.children.forEach(child => targetMeshes.push(child));
+      });
+
+      const intersects = raycaster.intersectObjects(targetMeshes);
+
+      if (intersects.length > 0) {
+        // Find parent TV Group
+        const hitObject = intersects[0].object;
+        let tvGroup = hitObject.parent;
+        if (tvGroup && tvGroup.userData && tvGroup.userData.url) {
+          openVideoModal(tvGroup.userData);
+        }
+      }
+    });
+
+    // Open Modal with targeted video data
+    function openVideoModal(data) {
+      videoError.classList.add('hidden');
+      modalTitle.innerText = data.title;
+      modalMessage.innerText = data.message;
+      videoPathLabel.innerText = data.url;
+
+      // Set video source
+      modalVideoSrc.src = data.url;
+      modalVideo.load();
+
+      // Trigger video play
+      const playPromise = modalVideo.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // Display error banner if local video file isn't found
+          videoError.classList.remove('hidden');
+          videoError.classList.add('flex');
+        });
+      }
+
+      modal.classList.remove('hidden');
+
+      // Pop festive confetti
+      confetti({
+        particleCount: 70,
+        spread: 60,
+        origin: { y: 0.65 },
+        colors: ['#f472b6', '#ec4899', '#a855f7', '#ffffff']
+      });
+    }
+
+    // Close Video Modal Logic
+    function closeModal() {
+      modal.classList.add('hidden');
+      modalVideo.pause();
+      modalVideoSrc.src = '';
+    }
+
+    closeBtn.addEventListener('click', closeModal);
+    modalCloseAction.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    // Audio Controls
+    const musicBtn = document.getElementById('music-btn');
+    const musicText = document.getElementById('music-text');
+    const bgMusic = document.getElementById('bg-music');
+    let isPlaying = false;
+
+    musicBtn.addEventListener('click', () => {
+      if (!isPlaying) {
+        bgMusic.play().then(() => {
+          musicText.innerText = 'Pause Song';
+          musicBtn.classList.add('bg-pink-600/60');
+          isPlaying = true;
+        }).catch(err => {
+          console.log("Audio play error:", err);
+        });
+      } else {
+        bgMusic.pause();
+        musicText.innerText = 'Play Song';
+        musicBtn.classList.remove('bg-pink-600/60');
+        isPlaying = false;
+      }
+    });
+
+    // Confetti Button Trigger
+    document.getElementById('confetti-btn').addEventListener('click', () => {
+      confetti({
+        particleCount: 110,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#f472b6', '#ec4899', '#38bdf8', '#ffffff', '#fb7185']
+      });
+    });
+
+    // Info Modal Dialog
+    const infoBtn = document.getElementById('info-btn');
+    const infoModal = document.getElementById('info-modal');
+    const infoCloseBtn = document.getElementById('info-close-btn');
+
+    infoBtn.addEventListener('click', () => infoModal.classList.remove('hidden'));
+    infoCloseBtn.addEventListener('click', () => infoModal.classList.add('hidden'));
+    infoModal.addEventListener('click', (e) => {
+      if (e.target === infoModal) infoModal.classList.add('hidden');
+    });
+
+    /* =========================================================================
+       8. MAIN ANIMATION RENDER LOOP
+       ========================================================================= */
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Rotate galaxy particle system
+      galaxyMesh.rotation.y += 0.0011;
+
+      // Pulse and gently bob vertical heart pillar
+      heartCore.rotation.y += 0.005;
+      heartCore.position.y = Math.sin(Date.now() * 0.0018) * 0.12;
+
+      // Orbit 10 TV monitors and keep them facing camera angle
+      memoryTVObjects.forEach((tvGroup) => {
+        tvGroup.userData.currentAngle += 0.0018; // Slow smooth orbit speed
+        tvGroup.position.x = Math.cos(tvGroup.userData.currentAngle) * tvGroup.userData.radius;
+        tvGroup.position.z = Math.sin(tvGroup.userData.currentAngle) * tvGroup.userData.radius;
+        
+        // Face camera position for optimal viewing angle
+        tvGroup.lookAt(camera.position);
+      });
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // Start animation loop on window load
+    window.onload = function() {
+      animate();
+    };
+
+    // Responsive Canvas Resizing
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
